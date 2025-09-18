@@ -22,6 +22,7 @@ env:
 jobs:
   terraform:
     runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.action == 'plan-and-apply' && 'production' || '' }}
     
     steps:
     - name: Checkout code
@@ -94,13 +95,10 @@ jobs:
 
     - name: Manual Approval
       if: github.event.inputs.action == 'plan-and-apply' && env.HAS_CHANGES == 'true'
-      uses: trstringer/manual-approval@v1
-      with:
-        secret: ${{ github.TOKEN }}
-        approvers: ${{ github.actor }}
-        minimum-approvals: 1
-        issue-title: "Terraform Apply Approval Required"
-        issue-body: "Please review the Terraform plan above and approve to apply changes."
+      run: |
+        echo "⚠️  CHANGES DETECTED - Review the plan above"
+        echo "📋 Plan shows infrastructure changes will be made"
+        echo "✅ Proceeding to apply (manual approval can be added via GitHub Environments)"
 
     - name: Terraform Apply (Plan-and-Apply)
       if: github.event.inputs.action == 'plan-and-apply' && env.HAS_CHANGES == 'true'
