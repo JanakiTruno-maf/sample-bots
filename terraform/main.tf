@@ -74,8 +74,8 @@ resource "google_cloud_run_v2_service" "app" {
 
       resources {
         limits = {
-          cpu    = "2000m"
-          memory = "1Gi"
+          cpu    = "1000m"
+          memory = "512Mi"
         }
       }
     }
@@ -89,7 +89,9 @@ resource "google_cloud_run_v2_service" "app" {
   lifecycle {
     ignore_changes = [
       client,
-      ingress
+      ingress,
+      template[0].annotations,
+      annotations
     ]
   }
 }
