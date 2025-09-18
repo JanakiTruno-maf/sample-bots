@@ -90,12 +90,11 @@ resource "google_cloud_run_v2_service" "app" {
 }
 
 # IAM policy to allow unauthenticated access
-resource "google_cloud_run_v2_service_iam_member" "public_access" {
-  name     = google_cloud_run_v2_service.app.name
-  location = google_cloud_run_v2_service.app.location
-  role     = "roles/run.invoker"
-  member   = "allUsers"
-}
+# Note: Configure manually in GCP Console due to org policy restrictions
+# gcloud run services add-iam-policy-binding sample-bot-app \
+#   --region=us-central1 \
+#   --member="allUsers" \
+#   --role="roles/run.invoker"
 
 # Outputs
 output "service_url" {
