@@ -63,8 +63,6 @@ variable "tf_state_bucket" {
 resource "google_cloud_run_v2_service" "app" {
   name     = var.app_name
   location = var.region
-  
-  ingress = "INGRESS_TRAFFIC_ALL"
 
   template {
     containers {
@@ -86,6 +84,13 @@ resource "google_cloud_run_v2_service" "app" {
   traffic {
     percent = 100
     type    = "TRAFFIC_TARGET_ALLOCATION_TYPE_LATEST"
+  }
+  
+  lifecycle {
+    ignore_changes = [
+      client,
+      ingress
+    ]
   }
 }
 
