@@ -71,11 +71,11 @@ resource "google_cloud_run_v2_service" "app" {
       ports {
         container_port = 8080
       }
-      
+
       resources {
         limits = {
-          cpu    = "1000m"
-          memory = "512Mi"
+          cpu    = "2000m"
+          memory = "1Gi"
         }
       }
     }
