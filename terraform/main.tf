@@ -63,6 +63,8 @@ variable "tf_state_bucket" {
 resource "google_cloud_run_v2_service" "app" {
   name     = var.app_name
   location = var.region
+  
+  ingress = "INGRESS_TRAFFIC_ALL"
 
   template {
     containers {
