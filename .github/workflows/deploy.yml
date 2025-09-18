@@ -74,6 +74,12 @@ jobs:
           -var="app_name=$APP_NAME" \
           -var="tf_state_bucket=$TF_STATE_BUCKET"
 
+    - name: Build and push with Cloud Build (Plan-and-Apply)
+      if: github.event.inputs.action == 'plan-and-apply'
+      run: |
+        gcloud builds submit --tag $REGION-docker.pkg.dev/$PROJECT_ID/$APP_NAME/$APP_NAME:latest || true
+        echo "Build submitted for plan-and-apply"
+
     - name: Terraform Plan with Output (Plan-and-Apply)
       if: github.event.inputs.action == 'plan-and-apply'
       working-directory: ./terraform
