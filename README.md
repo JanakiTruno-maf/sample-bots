@@ -12,7 +12,12 @@ Automated deployment pipeline for Cloud Run application using Terraform.
 
 2. Trigger workflow:
    - Go to Actions → Deploy Cloud Run App → Run workflow
-   - Choose action: `create` or `destroy`
+   - Choose action: `create`, `destroy`, or `plan-and-apply`
+   
+   **Actions:**
+   - `create`: Build image and deploy new infrastructure
+   - `destroy`: Remove all infrastructure
+   - `plan-and-apply`: Check for changes, show diff, and apply if approved
 
 ### GitLab CI
 1. Set CI/CD variables:
@@ -22,6 +27,11 @@ Automated deployment pipeline for Cloud Run application using Terraform.
    - `ACTION`: Set to `create` or `destroy` when running pipeline
 
 2. Run pipeline manually from GitLab UI
+   
+   **Actions:**
+   - `create`: Build image and deploy new infrastructure  
+   - `destroy`: Remove all infrastructure
+   - `plan-and-apply`: Two-stage process with manual approval between plan and apply
 
 ## Required GCP Permissions
 Service account needs:
@@ -29,6 +39,18 @@ Service account needs:
 - Storage Admin
 - IAM Security Admin
 - Service Account User
+
+## Workflow Types
+
+### Plan and Apply (Recommended for Production)
+1. **Plan Stage**: Runs `terraform plan -out=tfplan`
+2. **Diff Check**: Automatically stops if no changes detected
+3. **Manual Approval**: Requires approval before applying changes (GitHub/GitLab)
+4. **Apply Stage**: Runs `terraform apply tfplan` if approved
+
+### Create/Destroy (Direct Actions)
+- **Create**: Builds image and applies infrastructure directly
+- **Destroy**: Removes all infrastructure directly
 
 ## Files Structure
 ```

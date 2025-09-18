@@ -11,6 +11,7 @@ on:
         options:
           - create
           - destroy
+          - plan-and-apply
 
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
@@ -71,6 +72,40 @@ jobs:
           -var="region=$REGION" \
           -var="app_name=$APP_NAME" \
           -var="tf_state_bucket=$TF_STATE_BUCKET"
+
+    - name: Terraform Plan with Output (Plan-and-Apply)
+      if: github.event.inputs.action == 'plan-and-apply'
+      working-directory: ./terraform
+      run: |
+        terraform plan -out=tfplan \
+          -var="project_id=$PROJECT_ID" \
+          -var="region=$REGION" \
+          -var="app_name=$APP_NAME" \
+          -var="tf_state_bucket=$TF_STATE_BUCKET"
+        
+        # Check if there are changes
+        if terraform show -no-color tfplan | grep -q "No changes"; then
+          echo "No changes detected. Stopping pipeline."
+          echo "HAS_CHANGES=false" >> $GITHUB_ENV
+        else
+          echo "Changes detected. Will proceed to apply."
+          echo "HAS_CHANGES=true" >> $GITHUB_ENV
+        fi
+
+    - name: Manual Approval
+      if: github.event.inputs.action == 'plan-and-apply' && env.HAS_CHANGES == 'true'
+      uses: trstringer/manual-approval@v1
+      with:
+        secret: ${{ github.TOKEN }}
+        approvers: ${{ github.actor }}
+        minimum-approvals: 1
+        issue-title: "Terraform Apply Approval Required"
+        issue-body: "Please review the Terraform plan above and approve to apply changes."
+
+    - name: Terraform Apply (Plan-and-Apply)
+      if: github.event.inputs.action == 'plan-and-apply' && env.HAS_CHANGES == 'true'
+      working-directory: ./terraform
+      run: terraform apply -auto-approve tfplan
 
     - name: Terraform Destroy
       if: github.event.inputs.action == 'destroy'

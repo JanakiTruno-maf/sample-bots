@@ -1,9 +1,67 @@
 stages:
+  - plan
+  - apply
   - deploy
 
 variables:
   REGION: us-central1
   APP_NAME: sample-bot-app
+
+terraform-plan:
+  stage: plan
+  image: hashicorp/terraform:1.6
+  before_script:
+    - apk add --no-cache curl python3 py3-pip
+    - curl -sSL https://sdk.cloud.google.com | bash
+    - export PATH="$PATH:/root/google-cloud-sdk/bin"
+    - echo $GCP_SA_KEY | base64 -d > /tmp/gcp-key.json
+    - gcloud auth activate-service-account --key-file /tmp/gcp-key.json
+    - gcloud config set project $GCP_PROJECT_ID
+  script:
+    - cd terraform
+    - terraform init -backend-config="bucket=$TF_STATE_BUCKET" -backend-config="prefix=terraform/state"
+    - terraform plan -out=tfplan -var="project_id=$GCP_PROJECT_ID" -var="region=$REGION" -var="app_name=$APP_NAME" -var="tf_state_bucket=$TF_STATE_BUCKET"
+    - |
+      if terraform show -no-color tfplan | grep -q "No changes"; then
+        echo "NO_CHANGES=true" > plan_result.env
+        echo "No changes detected."
+      else
+        echo "NO_CHANGES=false" > plan_result.env
+        echo "Changes detected."
+      fi
+  artifacts:
+    paths:
+      - terraform/tfplan
+      - plan_result.env
+    expire_in: 1 hour
+  rules:
+    - if: $ACTION == "plan-and-apply" && $CI_PIPELINE_SOURCE == "web"
+
+terraform-apply:
+  stage: apply
+  image: hashicorp/terraform:1.6
+  before_script:
+    - apk add --no-cache curl python3 py3-pip
+    - curl -sSL https://sdk.cloud.google.com | bash
+    - export PATH="$PATH:/root/google-cloud-sdk/bin"
+    - echo $GCP_SA_KEY | base64 -d > /tmp/gcp-key.json
+    - gcloud auth activate-service-account --key-file /tmp/gcp-key.json
+    - gcloud config set project $GCP_PROJECT_ID
+  script:
+    - source plan_result.env
+    - |
+      if [ "$NO_CHANGES" = "true" ]; then
+        echo "No changes to apply. Skipping."
+        exit 0
+      fi
+    - cd terraform
+    - terraform init -backend-config="bucket=$TF_STATE_BUCKET" -backend-config="prefix=terraform/state"
+    - terraform apply -auto-approve tfplan
+  dependencies:
+    - terraform-plan
+  rules:
+    - if: $ACTION == "plan-and-apply" && $CI_PIPELINE_SOURCE == "web"
+      when: manual
 
 terraform:
   stage: deploy
@@ -32,5 +90,5 @@ terraform:
         terraform destroy -auto-approve -var="project_id=$GCP_PROJECT_ID" -var="region=$REGION" -var="app_name=$APP_NAME" -var="tf_state_bucket=$TF_STATE_BUCKET"
       fi
   rules:
-    - if: $CI_PIPELINE_SOURCE == "web"
+    - if: ($ACTION == "create" || $ACTION == "destroy") && $CI_PIPELINE_SOURCE == "web"
   when: manual
