@@ -40,24 +40,24 @@ variable "tf_state_bucket" {
   type        = string
 }
 
-# GCS bucket for Terraform state
-resource "google_storage_bucket" "tf_state" {
-  name     = var.tf_state_bucket
-  location = var.region
-  
-  versioning {
-    enabled = true
-  }
-  
-  lifecycle_rule {
-    condition {
-      num_newer_versions = 3
-    }
-    action {
-      type = "Delete"
-    }
-  }
-}
+# GCS bucket for Terraform state (create manually)
+# resource "google_storage_bucket" "tf_state" {
+#   name     = var.tf_state_bucket
+#   location = var.region
+#   
+#   versioning {
+#     enabled = true
+#   }
+#   
+#   lifecycle_rule {
+#     condition {
+#       num_newer_versions = 3
+#     }
+#     action {
+#       type = "Delete"
+#     }
+#   }
+# }
 
 # Cloud Run service
 resource "google_cloud_run_v2_service" "app" {
@@ -101,7 +101,7 @@ output "service_url" {
   value       = google_cloud_run_v2_service.app.uri
 }
 
-output "tf_state_bucket" {
-  description = "GCS bucket storing Terraform state"
-  value       = google_storage_bucket.tf_state.name
-}
+# output "tf_state_bucket" {
+#   description = "GCS bucket storing Terraform state"
+#   value       = google_storage_bucket.tf_state.name
+# }
