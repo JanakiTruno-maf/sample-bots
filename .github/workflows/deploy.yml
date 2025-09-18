@@ -42,7 +42,11 @@ jobs:
     - name: Build and push with Cloud Build
       if: github.event.inputs.action == 'create'
       run: |
-        gcloud builds submit --tag $REGION-docker.pkg.dev/$PROJECT_ID/$APP_NAME/$APP_NAME:latest
+        BUILD_ID=$(gcloud builds submit --tag $REGION-docker.pkg.dev/$PROJECT_ID/$APP_NAME/$APP_NAME:latest --async --format="value(id)")
+        echo "Build ID: $BUILD_ID"
+        echo "Waiting for build to complete..."
+        gcloud builds wait $BUILD_ID --region=global
+        echo "Build completed successfully"
 
     - name: Terraform Init
       working-directory: ./terraform
