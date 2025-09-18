@@ -66,7 +66,7 @@ resource "google_cloud_run_v2_service" "app" {
 
   template {
     containers {
-      image = "gcr.io/${var.project_id}/${var.app_name}:latest"
+      image = "${var.region}-docker.pkg.dev/${var.project_id}/${var.app_name}/${var.app_name}:latest"
       
       ports {
         container_port = 8080
