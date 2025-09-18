@@ -88,8 +88,8 @@ resource "google_cloud_run_v2_service" "app" {
 }
 
 # IAM policy to allow unauthenticated access
-resource "google_cloud_run_service_iam_member" "public_access" {
-  service  = google_cloud_run_v2_service.app.name
+resource "google_cloud_run_v2_service_iam_member" "public_access" {
+  name     = google_cloud_run_v2_service.app.name
   location = google_cloud_run_v2_service.app.location
   role     = "roles/run.invoker"
   member   = "allUsers"
