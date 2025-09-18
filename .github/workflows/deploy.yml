@@ -1,0 +1,84 @@
+name: Deploy Cloud Run App
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        default: 'create'
+        type: choice
+        options:
+          - create
+          - destroy
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  REGION: us-central1
+  APP_NAME: sample-bot-app
+  TF_STATE_BUCKET: ${{ secrets.TF_STATE_BUCKET }}
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: 1.6.0
+
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+    - name: Setup gcloud CLI
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: Build and push Docker image
+      if: github.event.inputs.action == 'create'
+      run: |
+        gcloud auth configure-docker
+        docker build -t gcr.io/$PROJECT_ID/$APP_NAME:latest .
+        docker push gcr.io/$PROJECT_ID/$APP_NAME:latest
+
+    - name: Terraform Init
+      working-directory: ./terraform
+      run: |
+        terraform init \
+          -backend-config="bucket=$TF_STATE_BUCKET" \
+          -backend-config="prefix=terraform/state"
+
+    - name: Terraform Plan (Create)
+      if: github.event.inputs.action == 'create'
+      working-directory: ./terraform
+      run: |
+        terraform plan \
+          -var="project_id=$PROJECT_ID" \
+          -var="region=$REGION" \
+          -var="app_name=$APP_NAME" \
+          -var="tf_state_bucket=$TF_STATE_BUCKET"
+
+    - name: Terraform Apply (Create)
+      if: github.event.inputs.action == 'create'
+      working-directory: ./terraform
+      run: |
+        terraform apply -auto-approve \
+          -var="project_id=$PROJECT_ID" \
+          -var="region=$REGION" \
+          -var="app_name=$APP_NAME" \
+          -var="tf_state_bucket=$TF_STATE_BUCKET"
+
+    - name: Terraform Destroy
+      if: github.event.inputs.action == 'destroy'
+      working-directory: ./terraform
+      run: |
+        terraform destroy -auto-approve \
+          -var="project_id=$PROJECT_ID" \
+          -var="region=$REGION" \
+          -var="app_name=$APP_NAME" \
+          -var="tf_state_bucket=$TF_STATE_BUCKET"

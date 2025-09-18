@@ -1,0 +1,4 @@
+project_id       = "your-gcp-project-id"
+region          = "us-central1"
+app_name        = "sample-bot-app"
+tf_state_bucket = "your-project-terraform-state"
